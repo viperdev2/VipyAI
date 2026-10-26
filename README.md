@@ -1,3 +1,4 @@
+![Vipy screenshot](reference.png)
 # Vipy
 
 A tiny voice assistant with a face. Your **phone** is the microphone, speaker and screen. Your **PC** does the work. Say "open notepad", "search for cats" or "volume up" and Vipy does it on your computer.
