@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#121a74">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<title>Vipy</title>
+<style>
+  /* Mood colors: registered so they fade smoothly between states */
+  @property --c1 { syntax:'<color>'; inherits:true; initial-value:#5f7fff; }
+  @property --c2 { syntax:'<color>'; inherits:true; initial-value:#2f45d9; }
+  @property --c3 { syntax:'<color>'; inherits:true; initial-value:#0e1568; }
+  @property --ac { syntax:'<color>'; inherits:true; initial-value:#7dffd6; }
+
+  :root { --ink:#0a1048; }
+  * { margin:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html, body { position:fixed; inset:0; overflow:hidden; overscroll-behavior:none; background:#0e1568; }
+  body { background:radial-gradient(ellipse 80% 70% at 50% 36%, var(--c1) 0%, var(--c2) 46%, var(--c3) 100%);
+         transition:--c1 .9s, --c2 .9s, --c3 .9s, --ac .9s; color:#eef3ff;
+         font-family:ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body[data-s=listening] { --c1:#46a8ff; --c2:#1f5ed4; --c3:#0a1b66; --p:1.25; }
+  body[data-s=thinking]  { --c1:#9a78ff; --c2:#5440d6; --c3:#170f6e; --ac:#c4b2ff; --p:.85; }
+  body[data-s=speaking]  { --c1:#6d8cff; --c2:#3a52e6; --c3:#101a72; --ac:#9fe8ff; }
+
+  /* Atmosphere: vignette, film grain, drifting light, dust */
+  body::before { content:""; position:fixed; inset:0; z-index:5; pointer-events:none;
+    background:radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgba(4,6,40,.55) 100%); }
+  body::after { content:""; position:fixed; inset:0; z-index:6; pointer-events:none; opacity:.2; mix-blend-mode:overlay;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .blob { position:fixed; z-index:0; width:70vmax; height:70vmax; border-radius:50%; pointer-events:none;
+          background:radial-gradient(circle, var(--ac) 0%, transparent 62%); animation:drift 20s ease-in-out infinite alternate; }
+  .b1 { left:-25vmax; top:-32vmax; opacity:.16; }
+  .b2 { right:-30vmax; bottom:-36vmax; opacity:.11; animation-duration:26s; animation-delay:-9s; }
+  .dot { position:fixed; z-index:3; border-radius:50%; background:var(--ac); opacity:0; pointer-events:none; animation:rise linear infinite; }
+  .ring { position:fixed; z-index:1; left:50%; top:46%; width:46vmin; height:46vmin; margin:-23vmin; border:2px solid var(--ac);
+          border-radius:50%; opacity:0; pointer-events:none; }
+  body[data-s=listening] .ring { animation:ripple 2.8s ease-out infinite; }
+  body[data-s=listening] .r2 { animation-delay:.93s; }
+  body[data-s=listening] .r3 { animation-delay:1.86s; }
+
+  svg { position:fixed; inset:0; z-index:2; width:100%; height:100%; }
+  .face { animation:float 6s ease-in-out infinite alternate; }
+
+  /* Eyes */
+  .halo { fill:url(#hl); opacity:0; transition:opacity .5s; }
+  body[data-s=listening] .halo { opacity:.75; }
+  body[data-s=thinking] .halo, body[data-s=speaking] .halo { opacity:.3; }
+  .lid, .eye, .pupil, .open, .smile, .brow, .gh { transform-box:fill-box; transform-origin:center; }
+  .lid { transition:transform .09s; }
+  .blink .lid { transform:scaleY(.06); }
+  .eye { transition:transform .35s; }
+  .look { transform:translate(calc(var(--x,0)*28px), calc(var(--y,0)*20px)); transition:transform .35s ease-out; }
+  .pupil { transform:scale(var(--p,1)); transition:transform .4s; }
+
+  /* Brows, gem, cheeks, mouth */
+  .brow { fill:none; stroke:var(--ink); stroke-width:16; stroke-linecap:round; transition:transform .3s; }
+  .gh { fill:url(#hl); opacity:.5; }
+  .ck { opacity:.7; transition:opacity .4s; }
+  .smile { fill:none; stroke:var(--ink); stroke-width:14; stroke-linecap:round; transition:transform .3s; }
+  .open { opacity:0; transform:scale(.1); transition:transform .3s, opacity .25s; }
+
+  body[data-s=listening] .eye { transform:scale(1.06); }
+  body[data-s=listening] .look { --x:0; --y:0; }
+  body[data-s=listening] .brow { transform:translateY(-16px); }
+  body[data-s=listening] .smile { transform:scaleY(.1); }
+  body[data-s=listening] .open { opacity:1; transform:scale(.7); }
+  body[data-s=listening] .gh, body[data-s=thinking] .gh { animation:pulse 1s infinite alternate; }
+  body[data-s=thinking] .look { --x:.8; --y:-1; }
+  body[data-s=thinking] .bl { transform:translateY(-10px) rotate(-7deg); }
+  body[data-s=thinking] .br { transform:translateY(4px) rotate(-3deg); }
+  body[data-s=thinking] .smile { transform:scaleY(.15) translateX(14px); }
+  body[data-s=speaking] .smile { transform:scaleY(.1); }
+  body[data-s=speaking] .open { opacity:1; animation:talk .3s infinite alternate ease-in-out; }
+  body[data-s=speaking] .ck { opacity:1; }
+
+  /* Caption */
+  #cap { position:fixed; z-index:7; left:0; right:0; margin:0 auto; width:max-content; max-width:min(86vw, 900px);
+         bottom:calc(2.6vmin + env(safe-area-inset-bottom, 0px)); padding:.65em 1.4em; border-radius:22px; text-align:center;
+         font-size:clamp(13px, 3.4vmin, 22px); font-weight:500; line-height:1.35; letter-spacing:.01em;
+         background:rgba(8,12,70,.3); border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(10px);
+         display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; pointer-events:none; transition:opacity .4s; }
+  #cap.hint { opacity:.55; }
+
+  @keyframes float  { to { transform:translateY(-7px); } }
+  @keyframes drift  { to { transform:translate(8vmax, 6vmax) scale(1.15); } }
+  @keyframes rise   { 0% { transform:translateY(0); opacity:0; } 15% { opacity:.5; } 100% { transform:translateY(-30vh); opacity:0; } }
+  @keyframes ripple { 0% { transform:scale(.6); opacity:.5; } 100% { transform:scale(2); opacity:0; } }
+  @keyframes pulse  { to { transform:scale(1.35); opacity:.9; } }
+  @keyframes talk   { from { transform:scale(.8,.25); } to { transform:scale(1.15,1); } }
+  @media (prefers-reduced-motion:reduce) { *, *::before { animation:none !important; } }
+</style>
+</head>
+<body data-s="idle">
+<div class="blob b1"></div><div class="blob b2"></div>
+<div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+
+<svg viewBox="0 -20 1000 520" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Vipy">
+  <defs>
+    <radialGradient id="sc" cx="50%" cy="32%" r="78%"><stop offset="0" stop-color="#fff"/><stop offset=".75" stop-color="#dfe7ff"/><stop offset="1" stop-color="#b5c4fb"/></radialGradient>
+    <linearGradient id="ls" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1048" stop-opacity=".42"/><stop offset=".4" stop-color="#0a1048" stop-opacity="0"/></linearGradient>
+    <radialGradient id="ir" cx="50%" cy="62%" r="70%"><stop offset="0" stop-color="#8dffe0"/><stop offset=".45" stop-color="#2f9be8"/><stop offset="1" stop-color="#17268a"/></radialGradient>
+    <radialGradient id="pu" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#16206e"/><stop offset="1" stop-color="#050835"/></radialGradient>
+    <radialGradient id="hl"><stop offset=".35" style="stop-color:var(--ac);stop-opacity:.9"/><stop offset="1" style="stop-color:var(--ac);stop-opacity:0"/></radialGradient>
+    <radialGradient id="sh"><stop offset="0" stop-color="#050835" stop-opacity=".5"/><stop offset="1" stop-color="#050835" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ckg"><stop offset="0" stop-color="#ff7ad9" stop-opacity=".6"/><stop offset="1" stop-color="#ff7ad9" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9fff3"/><stop offset=".5" stop-color="#7dffd6"/><stop offset="1" stop-color="#2bc9a0"/></linearGradient>
+    <clipPath id="ec"><ellipse rx="120" ry="135"/></clipPath>
+    <clipPath id="mc"><ellipse cx="500" cy="410" rx="30" ry="22"/></clipPath>
+  </defs>
+
+  <g class="face">
+    <ellipse class="ck" cx="170" cy="335" rx="95" ry="55" fill="url(#ckg)"/>
+    <ellipse class="ck" cx="830" cy="335" rx="95" ry="55" fill="url(#ckg)"/>
+
+    <g class="pos" transform="translate(310 215)"></g>
+    <g class="pos" transform="translate(690 215)"></g>
+
+    <path class="brow bl" d="M195 70 Q305 34 415 66"/>
+    <path class="brow br" d="M585 66 Q695 34 805 70"/>
+
+    <circle class="gh" cx="500" cy="44" r="50"/>
+    <path d="M500 14 L524 44 L500 74 L476 44Z" fill="url(#gm)"/>
+    <path d="M500 14 L476 44 L500 44Z" fill="#fff" fill-opacity=".5"/>
+
+    <path class="smile" d="M452 398 Q500 430 548 398"/>
+    <g class="open">
+      <ellipse cx="500" cy="410" rx="30" ry="22" fill="#0a1048"/>
+      <ellipse cx="500" cy="426" rx="19" ry="11" fill="#ff6fa8" clip-path="url(#mc)"/>
+    </g>
+  </g>
+</svg>
+<div id="cap" class="hint" aria-live="polite">Tap anywhere to talk</div>
+
+<script>
+const LANG = new URLSearchParams(location.search).get('lang') || 'en-US';
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const capEl = document.getElementById('cap');
+const cap = (t, hint) => { capEl.textContent = t; capEl.classList.toggle('hint', !!hint); };
+let state = 'idle', rec;
+const setState = s => { state = s; document.body.dataset.s = s; };
+
+// One eye, drawn twice
+const EYE = `<ellipse class="halo" rx="155" ry="170"/><ellipse cy="34" rx="140" ry="155" fill="url(#sh)"/>
+<g class="lid"><g class="eye">
+  <ellipse rx="120" ry="135" fill="url(#sc)"/>
+  <g clip-path="url(#ec)">
+    <g class="look">
+      <circle r="84" fill="url(#ir)"/>
+      <circle r="62" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="40" stroke-dasharray="2 7"/>
+      <circle r="82" fill="none" stroke="#0a1048" stroke-opacity=".6" stroke-width="9"/>
+      <circle class="pupil" r="40" fill="url(#pu)"/>
+      <path d="M-54 40A68 68 0 0 0 54 40" fill="none" stroke="#9fffe6" stroke-opacity=".55" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="-28" cy="-32" r="22" fill="#fff"/><circle cx="30" cy="26" r="9" fill="#fff" fill-opacity=".85"/>
+    </g>
+    <ellipse rx="120" ry="135" fill="url(#ls)"/>
+  </g>
+</g></g>`;
+document.querySelectorAll('.pos').forEach(g => g.innerHTML = EYE);
+
+navigator.serviceWorker?.register('/sw.js').catch(() => {});   // lets Chrome install Vipy as a fullscreen app
+
+// Eyes wander while idle or talking, and follow your finger
+setInterval(() => {
+  if (state === 'idle' || state === 'speaking') {
+    document.body.style.setProperty('--x', (Math.random() * 2 - 1).toFixed(2));
+    document.body.style.setProperty('--y', (Math.random() * 1.2 - .6).toFixed(2));
+  }
+}, 2600);
+addEventListener('pointermove', e => {
+  document.body.style.setProperty('--x', ((e.clientX / innerWidth - .5) * 2).toFixed(2));
+  document.body.style.setProperty('--y', ((e.clientY / innerHeight - .5) * 1.6).toFixed(2));
+});
+
+// Natural blinking, sometimes twice
+(function blink() {
+  const s = document.querySelector('svg');
+  s.classList.add('blink');
+  setTimeout(() => {
+    s.classList.remove('blink');
+    if (Math.random() < .2) setTimeout(() => { s.classList.add('blink'); setTimeout(() => s.classList.remove('blink'), 110); }, 170);
+  }, 120);
+  setTimeout(blink, 2200 + Math.random() * 3800);
+})();
+
+// Floating dust
+for (let i = 0; i < 16; i++) {
+  const d = document.createElement('i'), s = 2 + Math.random() * 4;
+  d.className = 'dot';
+  d.style.cssText = `left:${Math.random() * 100}vw;top:${40 + Math.random() * 60}vh;width:${s}px;height:${s}px;` +
+                    `animation-duration:${9 + Math.random() * 10}s;animation-delay:-${Math.random() * 14}s`;
+  document.body.appendChild(d);
+}
+
+function listen() {
+  if (!SR) return cap('Speech recognition needs Chrome.');
+  rec = new SR(); rec.lang = LANG; rec.interimResults = true;
+  let text = '';
+  rec.onresult = e => { text = [...e.results].map(r => r[0].transcript).join(''); cap(text); };
+  rec.onerror = e => cap(e.error === 'not-allowed' ? 'Mic blocked. Allow it in Chrome.' : 'Mic error: ' + e.error);
+  rec.onend = () => text.trim() ? ask(text) : (setState('idle'), cap('Tap anywhere to talk', true));
+  setState('listening'); cap('Listening...', true); rec.start();
+}
+
+async function ask(text) {
+  setState('thinking');
+  try {
+    const r = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+    speak((await r.json()).reply);
+  } catch (e) { cap("Can't reach the PC. Is the server running?"); setState('idle'); }
+}
+
+function speak(t) {
+  cap(t); setState('speaking');
+  const u = new SpeechSynthesisUtterance(t); u.lang = LANG;
+  u.onend = u.onerror = () => { if (state === 'speaking') { setState('idle'); cap('Tap anywhere to talk', true); } };
+  speechSynthesis.speak(u);
+}
+
+document.body.addEventListener('click', async () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.()?.then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+  try { await navigator.wakeLock.request('screen'); } catch (e) {}
+  if (state === 'thinking') return;
+  if (state === 'listening') return rec.stop();
+  if (state === 'speaking') speechSynthesis.cancel();
+  listen();
+});
+</script>
+</body>
+</html>
